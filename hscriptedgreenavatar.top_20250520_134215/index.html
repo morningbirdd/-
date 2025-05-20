@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>人物化身脚本反应绿色问答助手</title>
+  <!-- 引入 Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+  <style>
+    body {
+      font-family: 'SimSun', sans-serif;
+      background-color: #e8f6ee;
+      color: #333;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+    }
+    .header {
+      width: 100%;
+      padding: 20px;
+      text-align: center;
+      background-color: #4CAF50;
+      color: white;
+      font-size: 28px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .session-controls {
+      width: 90%;
+      max-width: 800px;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .session-controls select,
+    .session-controls button {
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #fff;
+      cursor: pointer;
+    }
+    .chat-container {
+      width: 90%;
+      max-width: 800px;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      box-sizing: border-box;
+    }
+    .chat-box {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+    }
+    /* 预定义问题下拉框样式 */
+    .preset-questions-container {
+      width: 100%;
+      margin: 10px 0;
+    }
+    .preset-questions-container select {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-bottom: 5px;
+    }
+    .input-container {
+      display: flex;
+      margin-top: 10px;
+      flex-shrink: 0;
+    }
+    .user-input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .btn-send, .btn-speech {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-left: 10px;
+      flex-shrink: 0;
+    }
+    .btn-speech {
+      font-size: 24px;
+      background-color: transparent;
+      padding: 0;
+      color: #4CAF50;
+    }
+    .message {
+      display: flex;
+      margin: 10px 0;
+    }
+    .message.user {
+      justify-content: flex-end;
+    }
+    .message.bot {
+      justify-content: flex-start;
+    }
+    .bubble {
+      max-width: 70%;
+      padding: 10px;
+      border-radius: 15px;
+      position: relative;
+      word-wrap: break-word;
+    }
+    .bubble.user {
+      background-color: #DCF8C6;
+      color: #333;
+      border-bottom-right-radius: 0;
+    }
+    .bubble.bot {
+      background-color: #F1F0F0;
+      color: #333;
+      border-bottom-left-radius: 0;
+    }
+    .bot-avatar {
+      width: 120px;
+      height: 155px;
+      margin: 0 auto 10px;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      background-color: #fff;
+    }
+    .bot-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .background-image {
+      position: absolute;
+      opacity: 0.8;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .background-image.top-left {
+      top: 100px;
+      left: 10px;
+      width: 120px;
+    }
+    .background-image.top-right {
+      top: 100px;
+      right: 10px;
+      width: 120px;
+    }
+    .background-image.bottom-left {
+      bottom: 20px;
+      left: 20px;
+      width: 120px;
+    }
+    .background-image.bottom-right {
+      bottom: 20px;
+      right: 20px;
+      width: 120px;
+    }
+    @media (max-width: 768px) {
+      .background-image {
+        display: none;
+      }
+    }
+    #loading {
+      display: none;
+      text-align: center;
+    }
+    #loading .loading-icon {
+      border: 4px solid transparent;
+      border-top-color: #3498db;
+      border-right-color: #9b59b6;
+      border-bottom-color: #e74c3c;
+      border-left-color: #f1c40f;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 0.8s linear infinite;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      margin: auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">绿色场景应用的虚拟化身设计研究——形象-行为框架视角云端绿色交互网站</div>
+
+  <!-- 四张绿叶背景图片 -->
+  <img class="background-image top-left"
+       src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExOWp5eXdpdmltMTd2Znp5eTRzN3ZwaXdlOXpzcjh2bWNiY3h1YXV1eSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/IELaLEjSAdcqTqt0np/giphy.gif" alt="绿叶图片">
+  <img class="background-image top-right"
+       src="https://media.giphy.com/media/vLEM1202sJJaqRAxbh/giphy.gif" alt="绿叶图片">
+  <img class="background-image bottom-left"
+       src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExY21ka2ZnaGJ5MWNpbm5sODRsdDlhN3hzajhvYndjaTM2enR4ZmpucSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/JzS2n5d4N6zZR0HCrP/giphy.gif" alt="绿叶图片">
+  <img class="background-image bottom-right"
+       src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExcjYyd3BvbGdjMnE4c3Byb2U5MTM0aXRrbmc2M2l3bWM4N285NWNqcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/f4MI8cUqEmtvV4iGkQ/giphy.gif"
+       alt="绿叶图片">
+
+  <div class="session-controls">
+    <select id="session-select">
+      <option value="">请选择历史会话</option>
+    </select>
+    <button onclick="loadSelectedSession()">加载会话</button>
+    <button onclick="saveCurrentSession()">保存当前会话</button>
+    <button onclick="newSession()">新会话</button>
+    <button onclick="deleteSelectedSession()">删除选中会话</button>
+  </div>
+
+  <div class="chat-container">
+    <div class="bot-avatar">
+      <img src="https://media.giphy.com/media/bHZw22BL3pKrKTyZEL/giphy.gif" alt="脚本化身">
+    </div>
+    <div class="chat-box" id="chat-box">
+      <!-- 初始对话 -->
+      <div class="message bot">
+        <div class="bubble bot">
+          您好！我是您的绿色场景虚拟化身小叶，有关环保减碳的问题您可以向我咨询哦~
+        </div>
+      </div>
+    </div>
+    <!-- 预定义问题下拉框 -->
+    <div class="preset-questions-container">
+      <select id="preset-questions">
+        <option value="">请选择预定义问题</option>
+        <option value="问：如何通过改变饮食习惯来减少碳足迹（限定200字）？">问：如何通过改变饮食习惯来减少碳足迹（限定200字）？</option>
+        <option value="问：家庭如何通过节能减排来减少碳排放？（限定200字）">问：家庭如何通过节能减排来减少碳排放？（限定200字）</option>
+        <option value="问：在日常出行中，如何通过改变交通方式来减少碳排放？（限定200字）">问：在日常出行中，如何通过改变交通方式来减少碳排放？（限定200字）</option>
+        <option value="问：个人如何通过减少食物浪费来减少碳排放？（限定200字）">问：个人如何通过减少食物浪费来减少碳排放？（限定200字）</option>
+        <option value="问：对于个人而言，选择可再生能源对减少碳排放有哪些贡献？（限定200字）">问：对于个人而言，选择可再生能源对减少碳排放有哪些贡献？（限定200字）</option>
+        <option value="问：如何通过促进绿色消费理念促进个人低碳生活？（限定200字）">问：如何通过促进绿色消费理念促进个人低碳生活？（限定200字）</option>
+        <option value="问：每天节省一度电可以节省多少碳排放？（限定200字）">问：每天节省一度电可以节省多少碳排放？（限定200字）</option>
+        <option value="问：如果每天乘坐公共交通出行，对绿色低碳目标的实现能起到什么样的效果呢？（限定200字）">问：如果每天乘坐公共交通出行，对绿色低碳目标的实现能起到什么样的效果呢？（限定200字）</option>
+        <option value="问：选择可再生材料的衣物如何有助于绿色低碳生活？（限定200字）">问：选择可再生材料的衣物如何有助于绿色低碳生活？（限定200字）</option>
+        <option value="问：如何通过衣物选择来减少碳排放并实践绿色低碳生活？（限定200字）">问：如何通过衣物选择来减少碳排放并实践绿色低碳生活？（限定200字）</option>
+        <option value="问：家庭如何通过日常习惯的改变来减少碳排放？（限定200字）">问：家庭如何通过日常习惯的改变来减少碳排放？（限定200字）</option>
+        <option value="问：在选择礼物时，环保购物袋比普通购物袋在绿色低碳方面有那些促进作用？（限定200字）">问：在选择礼物时，环保购物袋比普通购物袋在绿色低碳方面有那些促进作用？（限定200字）</option>
+      </select>
+    </div>
+    <div class="input-container">
+      <input
+        type="text"
+        id="user-input"
+        class="user-input"
+        placeholder="请输入您的问题..."
+        onkeydown="checkEnter(event)"
+        aria-label="请输入问题"
+      />
+      <button class="btn-send" onclick="sendMessage()" title="发送消息">发送</button>
+      <button class="btn-speech" onclick="startSpeechRecognition()">
+        <span class="material-icons">mic</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="loading">
+    <div class="loading-icon"></div>
+    <div class="loading-text">等待回答...</div>
+  </div>
+
+  <!-- 添加备案号脚注 -->
+  <footer style="margin-top: 20px; font-size: 12px; text-align: center;">
+    <a href="https://beian.miit.gov.cn" target="_blank" style="color: blue; text-decoration: none;">
+      闽ICP备2025090306号-1
+    </a>
+  </footer>
+
+  <script>
+    // ========================== 预设问答脚本 ==========================
+    const scriptAnswersZh = [
+      {
+        keywords: ["你好", "你好小叶", "你好，小叶"],
+        answer: "你好呀，我是你的绿色问答助手小叶，很高兴为你提供关于环保减碳的帮助~"
+      },
+      {
+        keywords: ["再见", "谢谢"],
+        answer: "感谢你的咨询，让我们一起践行绿色生活，欢迎再次向我提问关于绿色低碳方面的问题~"
+      },
+      {
+        keywords: ["饮食", "碳足迹", "改变饮食"],
+        answer: "【饮食习惯调整】 下面是关于饮食习惯的调整如何减少碳足迹的回答：采用本地、时令食材，减少长途运输；增加植物性食品摄入，降低畜牧业碳排放；严格规划购物和餐食，减少食物浪费；使用可重复使用餐具和购物袋以降低一次性塑料使用。"
+      },
+      {
+        keywords: ["家庭", "节能", "减排", "碳排放"],
+        answer: "【家庭节能措施】下面是关于家庭节能措施如何减少碳足迹的回答：选用能效高的家电及节能灯具；调整空调温度设定（夏26℃、冬18℃）；安装节水器具；实行垃圾分类和循环利用；鼓励步行、骑行或公共交通出行，从减少私家车使用入手降低碳排放。"
+      },
+      {
+        keywords: ["出行", "交通", "交通方式"],
+        answer: "【出行方式变更】下面是关于出行方式变更如何减少碳足迹的回答：优先选择公共交通，降低私家车依赖；使用骑行、步行方式满足短途出行需求；提倡电动汽车和共享出行；合理安排行程，降低每人碳排放并改善交通环境。"
+      },
+      {
+        keywords: ["食物浪费", "减少浪费"],
+        answer: "【减少食物浪费】下面是关于减少食物浪费如何减少碳足迹的回答：提前规划购物清单和餐食安排，确保只购买所需食材；妥善保存食材避免过期；外出就餐时合理点餐，响应“光盘行动”；通过减少浪费降低食物生产、运输及垃圾处理过程中的碳排放。"
+      },
+      {
+        keywords: ["可再生能源"],
+        answer: "【选择可再生能源】下面是关于选择可再生能源对减少碳排放的贡献的回答：使用太阳能、风能等可再生能源，降低家庭直接碳排放；促进能源结构优化，推动绿色技术革新；个人行为具有示范效应，借此鼓励更多环保选择，整体降低碳足迹。"
+      },
+      {
+        keywords: ["绿色消费", "低碳生活", "消费"],
+        answer: "【促进绿色消费】下面是关于如何通过促进绿色消费理念促进个人低碳生活的回答：优先购买环保低碳产品，选择节能电器和LED灯；减少过度包装及一次性用品，携带购物袋；选购本地、时令产品，降低长途运输排放；形成绿色消费习惯，直接降低生活碳排放。"
+      },
+      {
+        keywords: ["一度电", "节能"],
+        answer: "【电力节省效应】下面是关于每天节省一度电可以节省多少碳排放的回答：每天节省1 kWh电量，在传统能源构成国家可减少约0.68公斤碳排放；年节省可累计减少248至496公斤二氧化碳；微小改变积累起来将对整体减排目标产生显著贡献。"
+      },
+      {
+        keywords: ["公共交通", "出行"],
+        answer: "【公共交通效应】下面是关于每天乘坐公共交通出行，对绿色低碳目标的实现能起到什么样的效果的回答：乘坐公共交通工具能有效集约运输乘客，减少每人碳排放；公共交通车辆如地铁和公交减少道路车辆数量，降低总体碳排放；使用电动公共交通进一步减少尾气排放，提升城市空气质量。"
+      },
+      {
+        keywords: ["可再生材料", "衣物"],
+        answer: "【可再生衣物材料】下面是关于选择可再生材料的衣物如何有助于绿色低碳生活的回答：使用竹纤维、玉米纤维等可再生材料制成的衣物，其生产碳排放较低；有助于降低传统纺织品对环境的负面影响；推动时尚产业向可持续发展方向转型，实现低碳生活目标。"
+      },
+      {
+        keywords: ["衣物选择", "低碳生活"],
+        answer: "【衣物选择与循环利用】下面是关于如何通过衣物选择来减少碳排放并实践绿色低碳生活的回答：选购有机棉、麻、再生纤维等环保材料服装，可延长使用周期；注重衣物质量和设计，减少频繁购物需求；鼓励旧衣回收、捐赠及二手交易，降低资源消耗和垃圾排量。"
+      },
+      {
+        keywords: ["日常习惯", "家庭"],
+        answer: "【家庭日常习惯】下面是关于家庭如何通过日常习惯的改变来减少碳排放的回答：落实随手关灯，减少不必要电力浪费；选购简洁包装商品降低垃圾产生；养成多吃素食的饮食习惯，降低畜牧业温室气体排放；利用生活废水（如洗菜水）进行二次利用，整体降低家庭碳排放。"
+      },
+      {
+        keywords: ["礼物", "购物袋", "环保购物袋", "普通购物袋"],
+        answer: "【环保购物袋作用】下面是关于在选择礼物时，环保购物袋比普通购物袋在绿色低碳方面有那些促进作用的回答：环保购物袋采用可回收或生物降解材料，降低塑料废弃物；多次使用使生产和运输能耗、碳排放减少；选用环保购物袋体现低碳环保理念，促进绿色消费和可持续发展。"
+      }
+    ];
+
+    const scriptAnswersEn = [
+      {
+        keywords: ["hello", "hi xiaoye"],
+        answer: "Hello! I'm your green Q&A assistant Xiao Ye. I'm happy to help you with any low-carbon or environmental questions you may have."
+      },
+      {
+        keywords: ["bye", "thanks"],
+        answer: "Thank you for reaching out. Let's continue to practice sustainable living together, and feel free to ask me more questions anytime."
+      },
+      {
+        keywords: ["diet", "footprint", "change diet"],
+        answer: "To reduce your carbon footprint, you can adjust your dietary habits. First, choose local and seasonal produce to lower emissions from long-distance transport. Also, incorporate more plant-based foods like vegetables and fruits, reducing greenhouse gases from livestock. Finally, minimize food waste by planning your meals and using reusable bags or containers."
+      },
+      {
+        keywords: ["family", "energy saving", "carbon reduction", "household emission"],
+        answer: "Families can effectively reduce carbon emissions through various energy-saving measures. Use energy-efficient appliances, adjust AC temperatures, practice waste sorting, and encourage walking or cycling to minimize private car use."
+      },
+      {
+        keywords: ["transport", "commute", "travel mode"],
+        answer: "Changing your mode of transport can significantly reduce carbon emissions. Prioritize public transportation like buses and subways, or choose cycling and walking for short trips. Supporting electric vehicles and sharing rides also helps cut fuel consumption."
+      },
+      {
+        keywords: ["food waste", "reduce waste"],
+        answer: "Reducing food waste is a vital step in cutting carbon emissions. Plan your shopping and meals, store food properly, and avoid overbuying. When dining out, only order what you can finish to minimize leftovers and waste."
+      },
+      {
+        keywords: ["renewable energy"],
+        answer: "Choosing renewable energy sources like solar or wind is an effective way to lower your carbon footprint. These sources emit minimal greenhouse gases during operation and encourage a broader shift to clean energy."
+      },
+      {
+        keywords: ["green consumption", "low-carbon lifestyle", "consumption"],
+        answer: "Promoting green consumption is crucial for a low-carbon lifestyle. Choose eco-friendly products, reduce single-use plastics, bring reusable shopping bags, and opt for local, seasonal goods to cut transportation emissions."
+      },
+      {
+        keywords: ["save 1 kwh", "energy saving"],
+        answer: "Saving 1 kWh of electricity daily can reduce a notable amount of carbon emissions. Over a year, this adds up significantly. Collective energy-saving efforts can make a real difference in combating climate change."
+      },
+      {
+        keywords: ["public transport", "commute"],
+        answer: "Opting for public transport helps lower carbon emissions. Buses and subways carry many passengers, reducing per-person pollution. Electric or hybrid vehicles further reduce fuel usage and pollution."
+      },
+      {
+        keywords: ["renewable material", "clothing"],
+        answer: "Selecting clothing made from renewable materials (e.g., bamboo or corn fibers) is a key step in adopting a low-carbon lifestyle. These materials are more eco-friendly than non-renewable alternatives, reducing resource depletion."
+      },
+      {
+        keywords: ["clothes choice", "low-carbon lifestyle"],
+        answer: "When choosing clothing, consider eco-friendly fabrics like organic cotton or recycled fibers. High-quality, timeless designs last longer and reduce the need for frequent new purchases, helping lower overall carbon emissions."
+      },
+      {
+        keywords: ["daily habit", "household"],
+        answer: "Families can reduce carbon emissions by adjusting daily habits: turning off lights when not needed, buying minimally packaged products, incorporating more plant-based meals, and reusing household water are just a few small changes that make a big difference."
+      },
+      {
+        keywords: ["gift", "bag", "eco-friendly bag", "regular bag"],
+        answer: "Environmentally friendly shopping bags have obvious advantages in green and low-carbon aspects. First, they use recyclable or biodegradable materials to reduce plastic pollution and waste generation. Second, its repeated use reduces energy consumption and carbon emissions in production and transportation. The choice of environmentally friendly shopping bags not only reflects the concept of low-carbon life, but also drives consumers to pay attention to environmental protection and jointly promote the trend of green consumption."
+      }
+    ];
+
+    let currentSession = [];
+    let savedSessions = [];
+
+    const CURRENT_SESSION_KEY = "currentSession";
+    const SAVED_SESSIONS_KEY = "savedSessions";
+
+    function loadSavedSessions() {
+      const storedSessions = localStorage.getItem(SAVED_SESSIONS_KEY);
+      console.log("加载的历史会话数据：", storedSessions);  // 调试输出
+      if (storedSessions) {
+        savedSessions = JSON.parse(storedSessions);
+      } else {
+        savedSessions = [];
+      }
+      updateSessionSelect();
+    }
+
+    function updateSessionSelect() {
+      const select = document.getElementById("session-select");
+      // 修正：使用模板字符串时要用反引号
+      select.innerHTML = `<option value="">请选择历史会话</option>`;
+      savedSessions.forEach((session, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = session.title || ("会话 " + (index + 1));
+        select.appendChild(option);
+      });
+    }
+
+    function saveSessionsToStorage() {
+      localStorage.setItem(SAVED_SESSIONS_KEY, JSON.stringify(savedSessions));
+    }
+
+    function saveCurrentSessionToStorage() {
+      localStorage.setItem(CURRENT_SESSION_KEY, JSON.stringify(currentSession));
+    }
+
+    function renderConversation() {
+      const chatBox = document.getElementById("chat-box");
+      chatBox.innerHTML = "";  // 清空现有内容
+      currentSession.forEach(message => {
+        const messageDiv = document.createElement("div");
+        messageDiv.classList.add("message", message.role === "user" ? "user" : "bot");
+        const bubbleDiv = document.createElement("div");
+        bubbleDiv.classList.add("bubble", message.role === "user" ? "user" : "bot");
+        bubbleDiv.textContent = message.content;
+        messageDiv.appendChild(bubbleDiv);
+        chatBox.appendChild(messageDiv);
+      });
+      chatBox.scrollTop = chatBox.scrollHeight;  // 自动滚动到底部
+    }
+
+    function loadCurrentSession() {
+      const storedSession = localStorage.getItem(CURRENT_SESSION_KEY);
+      if (storedSession) {
+        currentSession = JSON.parse(storedSession);
+      } else {
+        // 初始问候语
+        currentSession = [
+          { role: "bot", content: "您好！我是您的绿色场景虚拟化身小叶，有什么关于环保减碳的问题都可以问我呦~" }
+        ];
+      }
+      renderConversation();
+    }
+
+    function saveCurrentSession() {
+      if (currentSession.length === 0) return;
+      let title = new Date().toLocaleString();  // 用当前时间作为标题
+      savedSessions.push({ title: title, messages: currentSession });
+      localStorage.setItem(CURRENT_SESSION_KEY, JSON.stringify(currentSession));
+      saveSessionsToStorage();
+      updateSessionSelect();
+      alert("当前会话已保存到历史记录");
+    }
+
+    // 根据下拉框选中项加载会话
+    function loadSelectedSession() {
+      const select = document.getElementById("session-select");
+      const index = select.value;
+      console.log("选中的会话索引:", index);
+      if (index === "") {
+        alert("请选择一个历史会话");
+        return;
+      }
+      console.log("加载的会话:", savedSessions[index]);
+      currentSession = savedSessions[index].messages;
+      saveCurrentSessionToStorage();
+      renderConversation();
+    }
+
+    function newSession() {
+      if (confirm("是否保存当前会话？未保存的内容将丢失。")) {
+        saveCurrentSession();
+      }
+      currentSession = [
+        { role: "bot", content: "您好！我是您的绿色场景虚拟化身小叶，有什么关于环保减碳的问题都可以问我呦~" }
+      ];
+      saveCurrentSessionToStorage();
+      renderConversation();
+    }
+
+    function deleteSelectedSession() {
+      const select = document.getElementById("session-select");
+      const index = select.value;
+      if (index === "") {
+        alert("请选择一个历史会话");
+        return;
+      }
+      if (confirm("确认删除此会话吗？")) {
+        savedSessions.splice(index, 1);
+        saveSessionsToStorage();
+        updateSessionSelect();
+        alert("会话已删除");
+      }
+    }
+
+    // 页面加载时执行
+    window.onload = function() {
+      loadSavedSessions();
+      loadCurrentSession();
+    };
+
+    // 预定义问题下拉框事件：选择后自动填充输入框
+    document.getElementById('preset-questions').addEventListener('change', function() {
+      const selectedQuestion = this.value;
+      if (selectedQuestion !== "") {
+        document.getElementById('user-input').value = selectedQuestion;
+      }
+    });
+
+    // 根据关键词在脚本中查找回答
+    function getScriptAnswer(userText) {
+      // 先从中文脚本查
+      for (let i = 0; i < scriptAnswersZh.length; i++) {
+        const { keywords, answer } = scriptAnswersZh[i];
+        for (let kw of keywords) {
+          if (userText.toLowerCase().includes(kw.toLowerCase())) {
+            return answer;
+          }
+        }
+      }
+      // 再从英文脚本查
+      for (let i = 0; i < scriptAnswersEn.length; i++) {
+        const { keywords, answer } = scriptAnswersEn[i];
+        for (let kw of keywords) {
+          if (userText.toLowerCase().includes(kw.toLowerCase())) {
+            return answer;
+          }
+        }
+      }
+      return "抱歉，没有找到相关答案 / Sorry, no relevant answer found.";
+    }
+
+    // 发送消息函数
+    async function sendMessage() {
+      const userInputElem = document.getElementById("user-input");
+      const userInput = userInputElem.value.trim();
+      if (userInput === "") return;
+
+      // 将用户消息显示在对话框
+      const chatBox = document.getElementById("chat-box");
+      const userMessage = document.createElement("div");
+      userMessage.classList.add("message", "user");
+      userMessage.innerHTML = `<div class="bubble user">${userInput}</div>`;
+      chatBox.appendChild(userMessage);
+
+      userInputElem.value = "";
+
+      // 创建占位的机器人回复
+      const botMessage = document.createElement("div");
+      botMessage.classList.add("message", "bot");
+      const botBubble = document.createElement("div");
+      botBubble.classList.add("bubble", "bot");
+      botMessage.appendChild(botBubble);
+      chatBox.appendChild(botMessage);
+
+      // 显示“等待回答...”动画（模拟异步）
+      document.getElementById("loading").style.display = "block";
+
+      // 本地脚本关键词匹配
+      const scriptReply = getScriptAnswer(userInput);
+
+    // 隐藏加载动画
+    document.getElementById("loading").style.display = "none";
+    
+    // 直接呈现答案，不再逐字显示
+    botBubble.textContent = scriptReply;
+    chatBox.scrollTop = chatBox.scrollHeight;
+    
+    // 立即保存回复到当前会话
+    currentSession.push({ role: "bot", content: scriptReply });
+    saveCurrentSessionToStorage();
+    
+    
+          // 同时把用户的问题也加入到 currentSession
+          currentSession.push({ role: "user", content: userInput });
+          saveCurrentSessionToStorage();
+        }
+
+    // 回车发送
+    function checkEnter(event) {
+      if (event.key === "Enter") {
+        sendMessage();
+      }
+    }
+
+    // 语音识别
+    function startSpeechRecognition() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'zh-CN';
+      recognition.interimResults = false;
+      recognition.start();
+
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById("user-input").value = transcript;
+        document.getElementById("user-input").focus();
+      };
+
+      recognition.onerror = function(event) {
+        console.error("语音识别出错:", event.error);
+      };
+    }
+  </script>
+</body>
+</html>

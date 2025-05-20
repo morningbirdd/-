@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>人类化身类自然反应绿色问答助手</title>
+  <!-- 引入 Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'SimSun', sans-serif;
+      background-color: #e8f6ee;
+      color: #333;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+    }
+    .header {
+      width: 100%;
+      padding: 20px;
+      text-align: center;
+      background-color: #4CAF50;
+      color: white;
+      font-size: 28px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    /* 会话控制区域 */
+    .session-controls {
+      width: 90%;
+      max-width: 800px;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .session-controls select,
+    .session-controls button {
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #fff;
+      cursor: pointer;
+    }
+    /* 聊天容器：占据剩余空间 */
+    .chat-container {
+      width: 90%;
+      max-width: 800px;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      box-sizing: border-box;
+    }
+    /* 聊天内容区：可滚动 */
+    .chat-box {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+    }
+    /* 预定义问题下拉框容器 */
+    .preset-questions-container {
+      width: 100%;
+      margin: 10px 0;
+    }
+    .preset-questions-container select {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    /* 输入区域 */
+    .input-container {
+      display: flex;
+      margin-top: 10px;
+      flex-shrink: 0;
+    }
+    .user-input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .btn-send, .btn-speech {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-left: 10px;
+      flex-shrink: 0;
+    }
+    /* 语音按钮图标样式 */
+    .btn-speech {
+      font-size: 24px;
+      background-color: transparent;
+      padding: 0;
+      color: #4CAF50;
+    }
+    /* 消息气泡样式 */
+    .message {
+      display: flex;
+      margin: 10px 0;
+    }
+    .message.user {
+      justify-content: flex-end;
+    }
+    .message.bot {
+      justify-content: flex-start;
+    }
+    .bubble {
+      max-width: 70%;
+      padding: 10px;
+      border-radius: 15px;
+      position: relative;
+      word-wrap: break-word;
+    }
+    .bubble.user {
+      background-color: #DCF8C6;
+      color: #333;
+      border-bottom-right-radius: 0;
+    }
+    .bubble.bot {
+      background-color: #F1F0F0;
+      color: #333;
+      border-bottom-left-radius: 0;
+    }
+    /* 机器人头像容器 */
+    .bot-avatar {
+      width: 130px;
+      height: 165px;
+      margin: 0 auto 10px;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      background-color: #fff;
+    }
+    .bot-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    /* 背景图片样式 */
+    .background-image {
+      position: absolute;
+      opacity: 0.8;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .background-image.top-left {
+      top: 100px;
+      left: 10px;
+      width: 120px;
+    }
+    .background-image.top-right {
+      top: 100px;
+      right: 10px;
+      width: 120px;
+    }
+    .background-image.bottom-left {
+      bottom: 20px;
+      left: 20px;
+      width: 120px;
+    }
+    .background-image.bottom-right {
+      bottom: 20px;
+      right: 20px;
+      width: 120px;
+    }
+    /* 在小屏设备上隐藏四张GIF图 */
+    @media (max-width: 768px) {
+      .background-image {
+        display: none; /* 隐藏四张GIF图 */
+      }
+    }
+    /* 在小屏设备上调整图片大小 */
+    @media (max-width: 768px) {
+      .background-image.top-left,
+      .background-image.top-right,
+      .background-image.bottom-left,
+      .background-image.bottom-right {
+        width: 0; /* 隐藏图片 */
+        height: 0;
+      }
+    }
+    /* 调整手机端样式：确保页面内容不会重叠 */
+    @media (max-width: 768px) {
+      .chat-container {
+        padding: 10px; /* 调整容器的内边距，确保不会被图片遮挡 */
+      }
+    }
+    /* 加载动画 */
+    #loading {
+      display: none;
+      text-align: center;
+    }
+    #loading .loading-icon {
+      border: 4px solid transparent;
+      border-top-color: #3498db;
+      border-right-color: #9b59b6;
+      border-bottom-color: #e74c3c;
+      border-left-color: #f1c40f;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 0.8s linear infinite;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      margin: auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">绿色场景应用的虚拟化身设计研究——形象-行为框架视角云端绿色交互网站</div>
+
+  <!-- 四张绿叶背景图片 -->
+  <img class="background-image top-left"
+       src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExOWp5eXdpdmltMTd2Znp5eTRzN3ZwaXpzcjh2bWNiY3h1YXV1eSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/IELaLEjSAdcqTqt0np/giphy.gif" alt="绿叶图片">
+  <img class="background-image top-right"
+       src="https://media.giphy.com/media/vLEM1202sJJaqRAxbh/giphy.gif" alt="绿叶图片">
+  <img class="background-image bottom-left"
+       src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExY21ka2ZnaGJ5MWNpbm5sODRsdDlhN3hzajhvYndjaTM2enR4ZmpucSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/JzS2n5d4N6zZR0HCrP/giphy.gif" alt="绿叶图片">
+  <img class="background-image bottom-right"
+       src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExcjYyd3BvbGdjMnE4c3Byb2U5MTM0aXRrbmc2M2l3bWM4N285NWNqcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/f4MI8cUqEmtvV4iGkQ/giphy.gif"
+       alt="绿叶图片">
+
+  <!-- 会话控制区域：下拉框和按钮 -->
+  <div class="session-controls">
+    <select id="session-select">
+      <option value="">请选择历史会话</option>
+    </select>
+    <button onclick="loadSelectedSession()">加载会话</button>
+    <button onclick="saveCurrentSession()">保存当前会话</button>
+    <button onclick="newSession()">新会话</button>
+    <button onclick="deleteSelectedSession()">删除选中会话</button>
+  </div>
+
+  <div class="chat-container">
+    <!-- 机器人头像 -->
+    <div class="bot-avatar">
+      <img src="https://media.giphy.com/media/bHZw22BL3pKrKTyZEL/giphy.gif" alt="类自然化身">
+    </div>
+    <div class="chat-box" id="chat-box">
+      <!-- 聊天记录会在脚本中加载 -->
+    </div>
+    <!-- 添加预定义问题下拉框 -->
+    <div class="preset-questions-container">
+      <select id="preset-questions">
+        <option value="">请选择问题</option>
+        <option value="如何通过改变饮食习惯来减少碳足迹（限定200字）？">问：如何通过改变饮食习惯来减少碳足迹（限定200字）？</option>
+        <option value="家庭如何通过节能减排来减少碳排放？（限定200字）">问：家庭如何通过节能减排来减少碳排放？（限定200字）</option>
+        <option value="在日常出行中，如何通过改变交通方式来减少碳排放？（限定200字）">问：在日常出行中，如何通过改变交通方式来减少碳排放？（限定200字）</option>
+        <option value="个人如何通过减少食物浪费来减少碳排放？（限定200字）">问：个人如何通过减少食物浪费来减少碳排放？（限定200字）</option>
+        <option value="对于个人而言，选择可再生能源对减少碳排放有哪些贡献？（限定200字）">问：对于个人而言，选择可再生能源对减少碳排放有哪些贡献？（限定200字）</option>
+        <option value="如何通过促进绿色消费理念促进个人低碳生活？（限定200字）">问：如何通过促进绿色消费理念促进个人低碳生活？（限定200字）</option>
+        <option value="每天节省一度电可以节省多少碳排放？（限定200字）">问：每天节省一度电可以节省多少碳排放？（限定200字）</option>
+        <option value="如果每天乘坐公共交通出行，对绿色低碳目标的实现能起到什么样的效果呢？（限定200字）">问：如果每天乘坐公共交通出行，对绿色低碳目标的实现能起到什么样的效果呢？（限定200字）</option>
+        <option value="选择可再生材料的衣物如何有助于绿色低碳生活？（限定200字）">问：选择可再生材料的衣物如何有助于绿色低碳生活？（限定200字）</option>
+        <option value="如何通过衣物选择来减少碳排放并实践绿色低碳生活？（限定200字）">问：如何通过衣物选择来减少碳排放并实践绿色低碳生活？（限定200字）</option>
+        <option value="家庭如何通过日常习惯的改变来减少碳排放？（限定200字）">问：家庭如何通过日常习惯的改变来减少碳排放？（限定200字）</option>
+        <option value="在选择礼物时，环保购物袋比普通购物袋在绿色低碳方面有那些促进作用？（限定200字）">问：在选择礼物时，环保购物袋比普通购物袋在绿色低碳方面有那些促进作用？（限定200字）</option>
+      </select>
+    </div>
+    <div class="input-container">
+      <input type="text" id="user-input" class="user-input" placeholder="请输入您的问题..." onkeydown="checkEnter(event)">
+      <button class="btn-send" onclick="sendMessage()">发送</button>
+      <!-- 语音输入图标 -->
+      <button class="btn-speech" onclick="startSpeechRecognition()">
+        <span class="material-icons">mic</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="loading">
+    <div class="loading-icon"></div>
+    <div class="loading-text">等待回答...</div>
+  </div>
+  <!-- 添加备案号脚注 -->
+  <footer style="margin-top: 20px; font-size: 12px; text-align: center;">
+    <a href="https://beian.miit.gov.cn" target="_blank" style="color: blue; text-decoration: none;">
+      闽ICP备2025090306号-3
+    </a>
+  </footer>
+
+  <script>
+    // 当前会话及历史会话数据
+    let currentSession = [];
+    let savedSessions = [];
+
+    // 本地存储键名
+    const CURRENT_SESSION_KEY = "currentSession";
+    const SAVED_SESSIONS_KEY = "savedSessions";
+    const PROXY_URL = "proxy.php";
+
+    // 从 localStorage 加载保存的会话数据
+    function loadSavedSessions() {
+      const storedSessions = localStorage.getItem(SAVED_SESSIONS_KEY);
+      if (storedSessions) {
+        savedSessions = JSON.parse(storedSessions);
+      } else {
+        savedSessions = [];
+      }
+      updateSessionSelect();
+    }
+
+    // 更新下拉框选项
+    function updateSessionSelect() {
+      const select = document.getElementById("session-select");
+      select.innerHTML = `<option value="">请选择历史会话</option>`;
+      savedSessions.forEach((session, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = session.title || ("会话 " + (index + 1));
+        select.appendChild(option);
+      });
+    }
+
+    // 保存历史会话到 localStorage
+    function saveSessionsToStorage() {
+      localStorage.setItem(SAVED_SESSIONS_KEY, JSON.stringify(savedSessions));
+    }
+
+    // 保存当前会话到 localStorage（仅保存当前会话的内容）
+    function saveCurrentSessionToStorage() {
+      localStorage.setItem(CURRENT_SESSION_KEY, JSON.stringify(currentSession));
+    }
+
+    // 渲染当前会话到聊天框
+    function renderConversation() {
+      const chatBox = document.getElementById("chat-box");
+      chatBox.innerHTML = "";
+      currentSession.forEach(message => {
+        const messageDiv = document.createElement("div");
+        messageDiv.classList.add("message", message.role === "user" ? "user" : "bot");
+        const bubbleDiv = document.createElement("div");
+        bubbleDiv.classList.add("bubble", message.role === "user" ? "user" : "bot");
+        bubbleDiv.innerHTML = message.content;
+        messageDiv.appendChild(bubbleDiv);
+        chatBox.appendChild(messageDiv);
+      });
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // 加载当前会话（如果存在则加载，否则初始化问候语）
+    function loadCurrentSession() {
+      const storedSession = localStorage.getItem(CURRENT_SESSION_KEY);
+      if (storedSession) {
+        currentSession = JSON.parse(storedSession);
+      } else {
+        currentSession = [{ role: "bot", content: "您好！我是您的绿色场景虚拟化身小叶，有什么关于环保减碳的问题都可以问我呦~" }];
+      }
+      renderConversation();
+    }
+
+    // 保存当前会话到历史记录（标题取当前时间）
+    function saveCurrentSession() {
+      if (currentSession.length === 0) return;
+      let title = new Date().toLocaleString();
+      savedSessions.push({ title: title, messages: currentSession });
+      localStorage.setItem(CURRENT_SESSION_KEY, JSON.stringify(currentSession));
+      saveSessionsToStorage();
+      updateSessionSelect();
+      alert("当前会话已保存到历史记录");
+    }
+    
+    // 根据下拉框选中项加载会话
+    function loadSelectedSession() {
+      const select = document.getElementById("session-select");
+      const index = select.value;
+      if (index === "") {
+        alert("请选择一个历史会话");
+        return;
+      }
+      currentSession = savedSessions[index].messages;
+      saveCurrentSessionToStorage();
+      renderConversation();
+    }
+
+    // 新会话：询问是否保存当前会话，然后初始化新会话
+    function newSession() {
+      if (confirm("是否保存当前会话？未保存的内容将丢失。")) {
+        saveCurrentSession();
+      }
+      currentSession = [{ role: "bot", content: "您好！我是您的绿色场景虚拟化身小叶，有什么关于环保减碳的问题都可以问我呦~" }];
+      saveCurrentSessionToStorage();
+      renderConversation();
+    }
+
+    // 删除选中会话
+    function deleteSelectedSession() {
+      const select = document.getElementById("session-select");
+      const index = select.value;
+      if (index === "") {
+        alert("请选择一个历史会话");
+        return;
+      }
+      if (confirm("确认删除此会话吗？")) {
+        savedSessions.splice(index, 1);
+        saveSessionsToStorage();
+        updateSessionSelect();
+        alert("会话已删除");
+      }
+    }
+
+    // 页面加载时执行
+    window.onload = function() {
+      loadSavedSessions();
+      loadCurrentSession();
+    };
+
+    // 为预定义问题下拉框添加监听事件
+    document.getElementById('preset-questions').addEventListener('change', function() {
+      const selectedQuestion = this.value;
+      if (selectedQuestion !== "") {
+        document.getElementById('user-input').value = selectedQuestion;
+      }
+    });
+
+    // 发送消息函数（调用代理服务器调度百度 API）
+    async function sendMessage() {
+      const userInputElem = document.getElementById("user-input");
+      const userInput = userInputElem.value.trim();
+      if (userInput === "") return;
+
+      // 添加用户消息到当前会话并刷新显示
+      currentSession.push({ role: "user", content: userInput });
+      saveCurrentSessionToStorage();
+      renderConversation();
+      userInputElem.value = "";
+
+      // 添加机器人的占位消息（用于打字效果）
+      const chatBox = document.getElementById("chat-box");
+      const botMessage = document.createElement("div");
+      botMessage.classList.add("message", "bot");
+      const botBubble = document.createElement("div");
+      botBubble.classList.add("bubble", "bot");
+      botMessage.appendChild(botBubble);
+      chatBox.appendChild(botMessage);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      // 显示加载动画
+      document.getElementById("loading").style.display = "block";
+
+      // 调度百度 API（仅发送当前用户消息）
+      const requestData = {
+        messages: [{ role: "user", content: userInput }],
+        model: "ERNIE-4.0-8K"
+      };
+
+      try {
+        const response = await fetch(PROXY_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestData)
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP 错误：${response.status}`);
+        }
+        const data = await response.json();
+        console.log("API 返回数据：", data);
+
+        let botReply = "";
+        if (data.error) {
+          botReply = "API 错误：" + data.error;
+        } else if (data.result) {
+          if (data.result.choices && data.result.choices.length > 0) {
+            botReply = data.result.choices[0].content || (data.result.choices[0].message ? data.result.choices[0].message.content : "");
+          } else if (typeof data.result === "string") {
+            botReply = data.result;
+          } else {
+            botReply = "抱歉，小叶暂时无法回答该问题。";
+          }
+        } else {
+          botReply = "抱歉，小叶暂时无法回答该问题。";
+        }
+
+        document.getElementById("loading").style.display = "none";
+    
+        // 模拟打字效果逐字显示回复
+        let i = 0;
+        const interval = setInterval(() => {
+          if (i < botReply.length) {
+            botBubble.textContent += botReply.charAt(i);
+            i++;
+            chatBox.scrollTop = chatBox.scrollHeight;
+          } else {
+            clearInterval(interval);
+            // 保存机器人回复到当前会话并更新存储
+            currentSession.push({ role: "bot", content: botReply });
+            saveCurrentSessionToStorage();
+          }
+        }, 50);
+      } catch (error) {
+        console.error("请求失败：", error instanceof Error ? error.message : error);
+        document.getElementById("loading").style.display = "none";
+        botBubble.textContent = "抱歉，小叶遇到问题，暂时无法回答。";
+      }
+    }
+    
+    function checkEnter(event) {
+      if (event.key === "Enter") {
+        sendMessage();
+      }
+    }
+    
+    // 启动语音识别并将焦点设置到输入框
+    function startSpeechRecognition() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'zh-CN'; // 设置为中文识别
+      recognition.interimResults = false; // 不实时更新结果
+
+      recognition.start();
+
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript; // 获取识别结果
+        document.getElementById("user-input").value = transcript;
+        document.getElementById("user-input").focus();
+      };
+
+      recognition.onerror = function(event) {
+        console.error("语音识别出错:", event.error);
+      };
+    }
+  </script>
+</body>
+</html>
